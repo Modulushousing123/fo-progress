@@ -231,6 +231,48 @@ button{font:inherit;cursor:pointer}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0s!important}
 }
+/* ── shout gate ── */
+#shout{position:absolute;left:50%;bottom:64px;width:820px;transform:translate(-50%,60px);opacity:0;pointer-events:none;z-index:8;
+  background:#0B1A1E;color:#F2F7F6;border:2px solid #2a4248;border-radius:28px;padding:22px 30px 18px;box-shadow:0 24px 60px rgba(0,0,0,.4);
+  transition:opacity .4s, transform .5s cubic-bezier(.2,1.4,.4,1)}
+#shout.on{opacity:1;transform:translate(-50%,0)}
+#shout.big{bottom:150px;width:1150px;padding:34px 44px 28px}
+#shout.nudge{animation:nudge .45s}
+@keyframes nudge{20%{transform:translate(calc(-50% - 16px),0)}45%{transform:translate(calc(-50% + 14px),0)}70%{transform:translate(calc(-50% - 8px),0)}100%{transform:translate(-50%,0)}}
+.shout-top{display:flex;align-items:center;gap:16px}
+.shout-top b{font-family:var(--f-display);font-weight:800;font-size:40px;letter-spacing:-.02em}
+#shout.big .shout-top b{font-size:64px}
+.shout-sub{font-family:var(--f-mono);font-size:18px;color:var(--term-dim)}
+.mic{width:20px;height:20px;border-radius:50%;background:var(--hot);flex:none;box-shadow:0 0 0 0 rgba(226,85,59,.6);animation:micp 1.4s infinite}
+@keyframes micp{70%{box-shadow:0 0 0 16px rgba(226,85,59,0)}}
+.meter{position:relative;height:46px;border-radius:999px;background:#17292d;margin-top:16px;overflow:hidden}
+#shout.big .meter{height:84px}
+#shoutFill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,var(--hi),var(--hot));border-radius:999px;transition:width .08s linear}
+#shoutFill.drain{transition:width .9s cubic-bezier(.5,0,.3,1)}
+#shoutLive{position:absolute;left:0;bottom:0;height:7px;width:0;background:#5DB8CC;opacity:.9;transition:width .05s linear}
+.shout-msg{font-family:var(--f-mono);font-size:20px;margin-top:12px;color:var(--hi);min-height:28px}
+#shout.big .shout-msg{font-size:26px;min-height:34px}
+#shards{position:absolute;inset:0;z-index:9;pointer-events:none}
+#shards .shard{position:absolute;inset:0;margin:0;opacity:1;visibility:visible;will-change:transform}
+#shards svg{position:absolute;inset:0;width:100%;height:100%}
+#flash{position:absolute;inset:0;background:#fff;z-index:10;pointer-events:none;opacity:0}
+
+/* ── last shout ── */
+.s-last h2{font-size:150px;color:#F2F7F6}
+.s-last .sub{font-size:36px;margin-top:20px;color:var(--term-dim)}
+.tries{display:flex;gap:14px;margin-top:34px}
+.tries span{width:28px;height:28px;border-radius:50%;border:3px solid var(--term-fg);transition:background .3s, transform .3s}
+.tries span.used{background:var(--hot);border-color:var(--hot);transform:scale(.85)}
+
+/* ── bro chill ── */
+.s-chill{background:var(--hot);color:#FFF6EE;justify-content:center}
+.s-chill h2{font-size:210px;letter-spacing:-.05em;line-height:.92}
+.s-chill .cap{font-family:var(--f-mono);font-size:26px;margin-top:50px;opacity:.85}
+.s-chill .ear{position:absolute;right:130px;top:120px;font-size:240px;line-height:1}
+.slide.s-chill.active .ear{animation:earwig .25s 1s ease-in-out 8 alternate}
+@keyframes earwig{from{transform:rotate(-12deg)}to{transform:rotate(12deg)}}
+.s-chill .cracks{position:absolute;inset:0;width:100%;height:100%}
+
 </style>
 </head>
 <body>
@@ -244,7 +286,7 @@ button{font:inherit;cursor:pointer}
   </section>
 
   <!-- 2 · Previously -->
-  <section class="slide cream s-prev" data-title="Previously">
+  <section class="slide cream s-prev" data-title="Previously" data-shout="1">
     <span class="eyebrow a">Previously, on Founder's Office</span>
     <h2 class="a" style="--d:1;margin-top:28px">July 2026. Someone asked:</h2>
     <p class="quote a pop" style="--d:3">"Can the Founder's Office help?"</p>
@@ -253,7 +295,7 @@ button{font:inherit;cursor:pointer}
   </section>
 
   <!-- 3 · Main quest -->
-  <section class="slide teal s-mq" data-title="Main quest">
+  <section class="slide teal s-mq" data-title="Main quest" data-shout="1">
     <div class="pulse"></div><div class="pulse b"></div>
     <span class="lead a right" style="--d:6">⚑ Quest lead: Aakash</span>
     <span class="eyebrow a">Main quest · the magnum opus</span>
@@ -299,7 +341,7 @@ button{font:inherit;cursor:pointer}
   </section>
 
   <!-- 8 · Quest log -->
-  <section class="slide dark s-ql" data-title="Side quests">
+  <section class="slide dark s-ql" data-title="Side quests" data-shout="1">
     <span class="eyebrow a">Meanwhile</span>
     <h2 class="a" style="--d:1;margin-top:20px">Side <span class="hot">quests.</span></h2>
     <div class="qlist">
@@ -379,6 +421,23 @@ button{font:inherit;cursor:pointer}
     </div>
   </section>
 
+  <!-- Last shout -->
+  <section class="slide dark s-last" data-title="One last shout" data-shout="final">
+    <span class="eyebrow a">Before the finale</span>
+    <h2 class="a" style="--d:1;margin-top:20px">One last shout.</h2>
+    <p class="sub a" style="--d:2">Everyone. Together. Make the building hear it.</p>
+    <div class="tries a" style="--d:3"><span></span><span></span><span></span></div>
+  </section>
+
+  <!-- Bro chill -->
+  <section class="slide s-chill" data-title="Bro chill">
+    <svg class="cracks" viewBox="0 0 1600 900" preserveAspectRatio="none" aria-hidden="true"><g id="chillCracks" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"></g></svg>
+    <span class="ear a pop" style="--d:2">👂</span>
+    <h2 class="a drop" style="--d:0">Bro chill,</h2>
+    <h2 class="a drop" style="--d:1">kaadhu paavum.</h2>
+    <p class="cap a" style="--d:4">Volume levels have been recorded. HR has been notified.</p>
+  </section>
+
   <!-- 14 · Next -->
   <section class="slide dark s-next" data-title="Up next">
     <span class="eyebrow a">Up next</span>
@@ -388,13 +447,19 @@ button{font:inherit;cursor:pointer}
     <p class="thx a pop" style="--d:6">Questions? Please raise them through the proper SOP.</p>
   </section>
 
+  <div id="shards"></div>
+  <div id="shout" aria-live="polite">
+    <div class="shout-top"><span class="mic"></span><b id="shoutLabel">Shout “NEXT!”</b><span class="shout-sub" id="shoutSub">to continue</span></div>
+    <div class="meter"><i id="shoutFill"></i><span id="shoutLive"></span></div>
+    <div class="shout-msg" id="shoutMsg"></div>
+  </div>
   <div id="toast"><span style="font-size:38px">🏆</span><div><small>Achievement unlocked</small><span id="toastMsg"></span></div></div>
   <canvas id="fx"></canvas>
   <div id="progress"></div>
   <div id="counter"></div>
 </div></div>
 
-<div id="hint">→ / space / click to advance · ← back · F fullscreen</div>
+<div id="hint">→ / click to advance · ← back · F fullscreen · shout when asked</div>
 <div id="nav"><button id="prev" aria-label="Previous slide">‹</button><button id="next" aria-label="Next slide">›</button></div>
 
 <script>
@@ -436,9 +501,11 @@ button{font:inherit;cursor:pointer}
   }
   function next(){
     const fs = frags(slides[cur]);
-    if(step < fs.length){ fs[step].classList.add('shown'); onFrag(slides[cur], step); step++; return; }
+    if(step < fs.length){ fs[step].classList.add('shown'); onFrag(slides[cur], step); step++; window.__shout?.ready(slides[cur], step>=fs.length); return; }
+    if(window.__shout?.blocks(slides[cur])) return;
     go(cur+1);
   }
+  window.__deck = { go:(n)=>go(n), cur:()=>cur, slides, stage, burst:(x,y)=>burst(x,y), shake:()=>shake(), size:()=>[SW,SH], fragsDone:()=>step>=frags(slides[cur]).length };
   function prev(){
     const fs = frags(slides[cur]);
     if(step > 0){ step--; fs[step].classList.remove('shown'); onUnfrag(slides[cur], step); return; }
@@ -466,6 +533,7 @@ button{font:inherit;cursor:pointer}
   function later(fn, ms){ timers.push(setTimeout(fn, reduce?0:ms)); }
   function leave(s){
     s.classList.remove('active');
+    window.__shout?.leave(s);
     while(timers.length) clearTimeout(timers.pop());
     if(s.classList.contains('s-log')) clearInterval(logTimer);
   }
@@ -476,6 +544,8 @@ button{font:inherit;cursor:pointer}
     if(s.classList.contains('s-log')) runLog();
     if(s.classList.contains('s-ql')) later(()=>burst(.5,.33), 1300);
     if(s.dataset.ach && !back) later(()=>{ say(s.dataset.ach); burst(.5,.13); }, 1100);
+    if(s.classList.contains('s-chill')) later(()=>{ shake(); setTimeout(shake,280); }, 250);
+    window.__shout?.enter(s, frags(s).length===0 || back);
   }
   function onFrag(s, i){
     if(s.classList.contains('s-arena')){ setUnified(true); burst(.5,.3); }
@@ -615,6 +685,223 @@ button{font:inherit;cursor:pointer}
   /* start where the URL says */
   const start = parseInt(location.hash.slice(1),10);
   go(isNaN(start) ? 0 : start-1);
+})();
+</script>
+<script>
+/* ── Shout gate: certain slides only advance when the room shouts at the Mac's mic ── */
+(function(){
+  const D = window.__deck; if(!D) return;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const el = document.getElementById('shout'), fillEl = document.getElementById('shoutFill'), liveEl = document.getElementById('shoutLive');
+  const label = document.getElementById('shoutLabel'), sub = document.getElementById('shoutSub'), msg = document.getElementById('shoutMsg');
+  const shards = document.getElementById('shards');
+  const passed = new WeakSet();
+  let visible=false, cur=null, fill=0, level=0, hold=false, showT=0, breaking=false;
+  let ctx=null, an=null, buf=null, micState='idle';           // idle | asking | ok | blocked
+  let attempts=0, inAttempt=false, quietT=0, peak=0;
+
+  /* mic */
+  function startMic(){
+    if(micState!=='idle') return; micState='asking';
+    if(!navigator.mediaDevices?.getUserMedia){ micState='blocked'; refreshMsg(); return; }
+    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})
+      .then(stream=>{ ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
+        const src=ctx.createMediaStreamSource(stream); an=ctx.createAnalyser(); an.fftSize=1024; src.connect(an);
+        buf=new Float32Array(an.fftSize); micState='ok'; ctx.resume?.(); refreshMsg(); })
+      .catch(()=>{ micState='blocked'; refreshMsg(); });
+  }
+  const gesture=()=>{ startMic(); ctx?.resume?.(); };
+  ['keydown','pointerdown','touchstart'].forEach(t=>addEventListener(t, gesture, {passive:true}));
+  addEventListener('keydown', e=>{
+    if(e.key==='n'||e.key==='N') hold=true;
+    if((e.key==='s'||e.key==='S') && visible && !breaking) succeed();   // presenter escape hatch
+  });
+  addEventListener('keyup', e=>{ if(e.key==='n'||e.key==='N') hold=false; });
+
+  function readLevel(){
+    let lvl=0;
+    if(hold) lvl=.88+Math.random()*.12;
+    else if(an){ an.getFloatTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++) s+=buf[i]*buf[i];
+      const db=20*Math.log10(Math.sqrt(s/buf.length)+1e-8); lvl=Math.max(0,Math.min(1,(db+52)/40)); }
+    level = Math.max(lvl, level*.86);
+    return level;
+  }
+
+  /* widget */
+  const isFinal = s => s && s.dataset.shout==='final';
+  function refreshMsg(){
+    if(!visible) return;
+    if(micState==='blocked') msg.textContent='Mic is blocked. Allow it in the address bar, or hold N to shout.';
+    else if(micState!=='ok') msg.textContent='Allow the microphone when Chrome asks.';
+    else if(!msg.dataset.keep) msg.textContent='';
+  }
+  function show(){
+    if(!cur || passed.has(cur) || visible) return;
+    visible=true; startMic();
+    const f=isFinal(cur);
+    el.classList.toggle('big', f);
+    label.textContent = f ? 'SHOUT!' : 'Shout “NEXT!”';
+    sub.textContent = f ? 'as loud as you possibly can' : 'to continue';
+    fill=0; fillEl.classList.remove('drain'); msg.dataset.keep='';
+    el.classList.add('on'); refreshMsg();
+  }
+  function hide(){ visible=false; el.classList.remove('on'); }
+  function say(t){ msg.textContent=t; msg.dataset.keep='1'; }
+
+  window.__shout = {
+    enter(s, ready){ cur=s; clearTimeout(showT); if(s.dataset.shout && !passed.has(s) && ready) showT=setTimeout(show, 1300); },
+    ready(s, done){ if(done && s.dataset.shout && !passed.has(s)){ clearTimeout(showT); showT=setTimeout(show, 700); } },
+    leave(s){ clearTimeout(showT); hide(); fill=0; },
+    blocks(s){
+      if(!s.dataset.shout || passed.has(s)) return false;
+      if(!visible){ clearTimeout(showT); show(); return true; }
+      el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge');
+      say(isFinal(s) ? 'The keyboard cannot save you. SHOUT.' : 'Nope. Use your voice.');
+      return true;
+    }
+  };
+
+  function succeed(){
+    if(!cur) return;
+    if(isFinal(cur)){ shatter(); return; }
+    passed.add(cur); fill=1; fillEl.style.width='100%'; say('LOUD. Respect.');
+    D.burst(.5,.8);
+    setTimeout(()=>{ hide(); D.go(D.cur()+1); }, 450);
+  }
+
+  /* per-frame */
+  let last=performance.now();
+  function frame(t){
+    const dt=Math.min(.1,(t-last)/1000); last=t;
+    const lvl=readLevel();
+    liveEl.style.width=(lvl*100)+'%';
+    if(visible && !breaking && cur){
+      if(!isFinal(cur)){
+        if(lvl>.5) fill += (lvl-.4)*dt*1.6; else fill -= dt*.25;
+        fill=Math.max(0,Math.min(1,fill));
+        if(fill>=1){ succeed(); }
+      } else finalFrame(lvl, dt);
+      fillEl.style.width=(fill*100)+'%';
+    }
+    requestAnimationFrame(frame);
+  window.__shout.enter(D.slides[D.cur()], D.fragsDone());
+  }
+  function finalFrame(lvl, dt){
+    if(lvl>.5){
+      if(!inAttempt){ inAttempt=true; peak=0; fillEl.classList.remove('drain'); msg.dataset.keep=''; msg.textContent=''; }
+      quietT=0;
+      const rate = attempts>=2 ? 3 : 1.6, cap = attempts===0 ? .72 : attempts===1 ? .94 : 1;
+      fill=Math.min(cap, fill+(lvl-.4)*dt*rate); peak=Math.max(peak,fill);
+      if(cap<1 && fill>=cap-.001 && !msg.textContent) say(attempts===0 ? 'hmm…' : 'almost… ALMOST…');
+      if(attempts>=2 && fill>=1){ attempts=3; markTries(); shatter(); }
+    } else if(inAttempt){
+      quietT+=dt;
+      if(quietT>.55){
+        inAttempt=false;
+        if(peak>.12){
+          attempts++; markTries();
+          fillEl.classList.add('drain'); fill=0;
+          say(attempts===1 ? 'Was that it? My grandmother shouts louder.' : 'SO close. One more. Everything you have got.');
+          el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge');
+        }
+      }
+    }
+  }
+  function markTries(){ cur?.querySelectorAll('.tries span').forEach((d,i)=>d.classList.toggle('used', i<attempts)); }
+  requestAnimationFrame(frame);
+
+  /* ── glass break ── */
+  function shatter(){
+    if(breaking) return; breaking=true;
+    const s=cur; passed.add(s);
+    fill=1; fillEl.style.width='100%';
+    const [W,H]=D.size(), cx=W*.5, cy=H*.72;
+    if(reduce){ hide(); breaking=false; D.go(D.cur()+1); return; }
+
+    // rays from the impact point, jagged, out past the edges
+    const R=15, rays=[], maxL=Math.hypot(W,H);
+    for(let i=0;i<R;i++){
+      const a=(i/R)*Math.PI*2 + (Math.random()-.5)*(Math.PI*2/R)*.7;
+      const pts=[[cx,cy]]; let d=0;
+      while(d<maxL){ d+=60+Math.random()*110; const j=(Math.random()-.5)*.12;
+        pts.push([cx+Math.cos(a+j)*d, cy+Math.sin(a+j)*d]); }
+      rays.push({a,pts});
+    }
+    rays.sort((p,q)=>p.a-q.a);
+    const rings=[70+Math.random()*30, 180+Math.random()*50, 340+Math.random()*80];
+    let paths='';
+    rays.forEach(r=>{ paths+='<path pathLength="1" d="M'+r.pts.map(p=>p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' L')+'"/>'; });
+    rings.forEach(rad=>{ let d=''; rays.forEach((r,i)=>{ const a=r.a+(Math.random()-.5)*.05, rr=rad*(.85+Math.random()*.3);
+      d+=(i?' L':'M')+(cx+Math.cos(a)*rr).toFixed(1)+' '+(cy+Math.sin(a)*rr).toFixed(1); }); paths+='<path pathLength="1" d="'+d+' Z"/>'; });
+    const svgHTML='<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none"><g fill="none" stroke-linejoin="round">'
+      +'<g stroke="rgba(0,0,0,.35)" stroke-width="5">'+paths+'</g><g stroke="rgba(255,255,255,.95)" stroke-width="2.4">'+paths+'</g></g></svg>';
+    shards.innerHTML=svgHTML;
+    shards.querySelectorAll('path').forEach(p=>p.animate([{strokeDasharray:1,strokeDashoffset:1},{strokeDasharray:1,strokeDashoffset:0}],{duration:260,easing:'cubic-bezier(.2,.9,.3,1)',fill:'forwards'}));
+    // leave faint cracks on the next slide
+    const cc=document.getElementById('chillCracks'); if(cc){ cc.innerHTML=paths; cc.parentNode.setAttribute('viewBox','0 0 '+W+' '+H); }
+    hide(); D.shake(); crackSound();
+    msg.dataset.keep='';
+
+    setTimeout(()=>{
+      // polygons: inner wedge + outer wedge between consecutive rays
+      const corners=[[0,0],[W,0],[W,H],[0,H]].map(p=>({p, a:Math.atan2(p[1]-cy,p[0]-cx)}));
+      const edgePt=a=>{ const dx=Math.cos(a), dy=Math.sin(a); let t=Infinity;
+        if(dx>0) t=Math.min(t,(W-cx)/dx); if(dx<0) t=Math.min(t,-cx/dx); if(dy>0) t=Math.min(t,(H-cy)/dy); if(dy<0) t=Math.min(t,-cy/dy);
+        return [cx+dx*t*1.02, cy+dy*t*1.02]; };
+      const norm=a=>{ while(a<0) a+=Math.PI*2; while(a>=Math.PI*2) a-=Math.PI*2; return a; };
+      const polys=[];
+      rays.forEach((r,i)=>{
+        const r2=rays[(i+1)%R], a1=r.a, a2=r2.a + (i===R-1?Math.PI*2:0);
+        const rin=rings[1]*(.8+Math.random()*.4);
+        const i1=[cx+Math.cos(a1)*rin, cy+Math.sin(a1)*rin], i2=[cx+Math.cos(a2)*rin, cy+Math.sin(a2)*rin];
+        polys.push([[cx,cy],i1,i2]);
+        const between=corners.filter(c=>{ const d=norm(c.a-a1); return d>0 && d<norm(a2-a1||Math.PI*2); }).sort((p,q)=>norm(p.a-a1)-norm(q.a-a1)).map(c=>c.p);
+        polys.push([i1, edgePt(a1), ...between, edgePt(a2), i2]);
+      });
+      const snap=s.cloneNode(true); snap.removeAttribute('id'); snap.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
+      snap.insertAdjacentHTML('beforeend', svgHTML.replace('<svg ','<svg style="position:absolute;inset:0;width:100%;height:100%" '));
+      shards.innerHTML='';
+      s.style.transition='none';
+      let done=0;
+      polys.forEach((poly,k)=>{
+        const piece=snap.cloneNode(true); piece.classList.add('shard','active');
+        piece.style.clipPath='polygon('+poly.map(p=>p[0].toFixed(1)+'px '+p[1].toFixed(1)+'px').join(',')+')';
+        const gx=poly.reduce((a,p)=>a+p[0],0)/poly.length, gy=poly.reduce((a,p)=>a+p[1],0)/poly.length;
+        piece.style.transformOrigin=gx+'px '+gy+'px';
+        shards.appendChild(piece);
+        const dx=gx-cx, dy=gy-cy, L=Math.hypot(dx,dy)||1, ux=dx/L, uy=dy/L, inner=k%2===0;
+        const rot=(Math.random()-.5)*(inner?140:70), push=(inner?60:25)+Math.random()*40;
+        piece.animate([
+          {transform:'translate(0,0) rotate(0deg)'},
+          {transform:'translate('+ux*push+'px,'+uy*push+'px) rotate('+rot*.15+'deg)', offset:.12},
+          {transform:'translate('+(ux*(160+Math.random()*260))+'px,'+(H*1.15+Math.random()*300)+'px) rotate('+rot+'deg)', opacity:.9}
+        ],{duration:1200+Math.random()*700, delay:(inner?0:90)+Math.random()*110, easing:'cubic-bezier(.4,0,.85,.45)', fill:'forwards'})
+        .onfinish=()=>{ if(++done===polys.length){ shards.innerHTML=''; breaking=false; } };
+      });
+      const flash=document.createElement('div'); flash.id='flash'; shards.appendChild(flash);
+      flash.animate([{opacity:0},{opacity:.9,offset:.15},{opacity:0}],{duration:420,fill:'forwards'});
+      glassSound(); D.shake();
+      s.style.visibility='hidden';
+      D.go(D.cur()+1);
+      setTimeout(()=>{ s.style.visibility=''; s.style.transition=''; }, 700);
+    }, 420);
+  }
+
+  /* sounds, synthesised */
+  function ac(){ ctx = ctx || new (window.AudioContext||window.webkitAudioContext)(); ctx.resume?.(); return ctx; }
+  function noise(c, secs, decay){ const b=c.createBuffer(1, c.sampleRate*secs, c.sampleRate), d=b.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length, decay); const n=c.createBufferSource(); n.buffer=b; return n; }
+  function crackSound(){ try{ const c=ac(), n=noise(c,.09,3), hp=c.createBiquadFilter(), g=c.createGain();
+    hp.type='highpass'; hp.frequency.value=2200; g.gain.value=.9; n.connect(hp).connect(g).connect(c.destination); n.start(); }catch(e){} }
+  function glassSound(){ try{
+    const c=ac(), t=c.currentTime, out=c.createGain(); out.gain.value=.9; out.connect(c.destination);
+    const n=noise(c,1.5,4), hp=c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=1600; n.connect(hp).connect(out); n.start(t);
+    const o=c.createOscillator(), og=c.createGain(); o.frequency.setValueAtTime(110,t); o.frequency.exponentialRampToValueAtTime(38,t+.25);
+    og.gain.setValueAtTime(.7,t); og.gain.exponentialRampToValueAtTime(.001,t+.3); o.connect(og).connect(out); o.start(t); o.stop(t+.32);
+    for(let i=0;i<22;i++){ const st=t+.05+Math.random()*1.1, p=c.createOscillator(), pg=c.createGain();
+      p.type='sine'; p.frequency.value=2600+Math.random()*4800; pg.gain.setValueAtTime(.0001,st); pg.gain.exponentialRampToValueAtTime(.09,st+.004); pg.gain.exponentialRampToValueAtTime(.0001,st+.12+Math.random()*.15);
+      p.connect(pg).connect(out); p.start(st); p.stop(st+.3); }
+  }catch(e){} }
 })();
 </script>
 </body>
