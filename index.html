@@ -244,6 +244,13 @@ button{font:inherit;cursor:pointer}
 .shout-top b{font-family:var(--f-display);font-weight:800;font-size:40px;letter-spacing:-.02em}
 #shout.big .shout-top b{font-size:72px}
 .shout-sub{font-family:var(--f-mono);font-size:18px;color:var(--term-dim)}
+.lvl{display:flex;gap:4px;align-items:center;height:34px;flex:none}
+.lvl i{width:6px;height:100%;border-radius:3px;background:var(--hot);transform:scaleY(.15);transition:transform .06s linear}
+#shout.big .lvl{height:56px}
+#shout.big .lvl i{width:9px}
+#shout.alarm{border-color:var(--hot);background:#3a0d06;animation:alarm .12s linear 5 alternate}
+#shout.alarm b{color:var(--hot)}
+@keyframes alarm{from{transform:translate(calc(-50% - 10px),0) scale(1.04)}to{transform:translate(calc(-50% + 10px),0) scale(1.08)}}
 .mic{width:20px;height:20px;border-radius:50%;background:var(--hot);flex:none;box-shadow:0 0 0 0 rgba(226,85,59,.6);animation:micp 1.4s infinite}
 @keyframes micp{70%{box-shadow:0 0 0 16px rgba(226,85,59,0)}}
 .meter{position:relative;height:46px;border-radius:999px;background:#17292d;margin-top:16px;overflow:hidden}
@@ -428,7 +435,6 @@ button{font:inherit;cursor:pointer}
     <span class="eyebrow a">Before the finale</span>
     <h2 class="a" style="--d:1;margin-top:20px">One last shout.</h2>
     <p class="sub a" style="--d:2">Everyone. Together. Make the building hear it.</p>
-    <div class="tries a" style="--d:3"><span></span><span></span><span></span></div>
   </section>
 
   <!-- Bro chill -->
@@ -451,7 +457,7 @@ button{font:inherit;cursor:pointer}
 
   <div id="shards"></div>
   <div id="shout" aria-live="polite">
-    <div class="shout-top"><span class="mic"></span><b id="shoutLabel">Shout “NEXT!”</b><span class="shout-sub" id="shoutSub">to continue</span></div>
+    <div class="shout-top"><span class="lvl" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><b id="shoutLabel">Shout “NEXT!”</b><span class="shout-sub" id="shoutSub">to continue</span></div>
     <div class="shout-msg" id="shoutMsg"></div>
   </div>
   <div id="toast"><span style="font-size:38px">🏆</span><div><small>Achievement unlocked</small><span id="toastMsg"></span></div></div>
@@ -689,90 +695,125 @@ button{font:inherit;cursor:pointer}
 })();
 </script>
 <script>
-/* ── Voice gate: certain slides only advance when someone says "next" ── */
+/* ── Voice gate: on certain slides, press → to arm, then anyone saying "next" moves on.
+      Detection is plain loudness over the room's own background level, so it works offline and instantly. ── */
 (function(){
   const D = window.__deck; if(!D) return;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const el = document.getElementById('shout'), label = document.getElementById('shoutLabel'), sub = document.getElementById('shoutSub'), msg = document.getElementById('shoutMsg');
+  const bars = [...document.querySelectorAll('#shout .lvl i')];
   const shards = document.getElementById('shards');
   const passed = new WeakSet();
-  let visible=false, cur=null, showT=0, breaking=false, passing=false, ctx=null, attempts=0, lastHit=0;
+  let visible=false, armedAt=0, cur=null, breaking=false, passing=false, attempts=0;
+  let ctx=null, an=null, buf=null, mic='idle';                 // idle | asking | ok | blocked
 
-  /* speech recognition, kept running once started */
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let rec=null, voice='idle';                 // idle | on | blocked | unsupported
-  function startVoice(){
-    if(voice!=='idle') return;
-    if(!SR){ voice='unsupported'; refreshMsg(); return; }
-    rec=new SR(); rec.continuous=true; rec.interimResults=true; rec.lang='en-IN';
-    rec.onresult=e=>{
-      for(let i=e.resultIndex;i<e.results.length;i++){
-        const r=e.results[i], t=r[0].transcript;
-        if(visible) sub.textContent='heard: “'+t.trim().slice(-40)+'”';
-        if(!r.handled && /\b(next|necks|nex|nekst|neck's)\b/i.test(t)){ r.handled=true; heard(); }
-      }
-    };
-    rec.onerror=e=>{ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ voice='blocked'; refreshMsg(); } };
-    rec.onend=()=>{ if(voice==='on') try{ rec.start(); }catch(_){} };
-    try{ rec.start(); voice='on'; }catch(_){ }
+  /* mic */
+  function ac(){ ctx = ctx || new (window.AudioContext||window.webkitAudioContext)(); ctx.resume?.(); return ctx; }
+  function startMic(){
+    if(mic!=='idle') return; mic='asking';
+    if(!navigator.mediaDevices?.getUserMedia){ mic='blocked'; refreshMsg(); return; }
+    navigator.mediaDevices.getUserMedia({audio:true})
+      .then(stream=>{ const c=new (window.AudioContext||window.webkitAudioContext)(); c.resume?.(); const src=c.createMediaStreamSource(stream); an=c.createAnalyser(); an.fftSize=1024; src.connect(an);
+        const mute=c.createGain(); mute.gain.value=0; an.connect(mute).connect(c.destination);   // keep the graph pulled
+        window.__mic={stream,src,an,mute,c};                                                          // and alive
+        buf=new Float32Array(an.fftSize); mic='ok'; refreshMsg(); })
+      .catch(()=>{ mic='blocked'; refreshMsg(); });
   }
-  const gesture=()=>{ startVoice(); try{ ac(); }catch(_){ } };
-  ['keydown','pointerdown','touchstart'].forEach(t=>addEventListener(t, gesture, {passive:true}));
+  ['keydown','pointerdown','touchstart'].forEach(t=>addEventListener(t, ()=>{ startMic(); try{ ac(); }catch(_){} window.__mic?.c?.resume?.(); }, {passive:true}));
   addEventListener('keydown', e=>{
-    if(e.key==='n'||e.key==='N') heard();                       // backup: N = someone said "next"
-    if((e.key==='s'||e.key==='S') && visible && !breaking){ isFinal(cur) ? shatter() : succeed(); }
+    if(e.key==='n'||e.key==='N') fakeVoice=performance.now();          // backup: N = someone said "next"
+    if((e.key==='s'||e.key==='S') && visible && !breaking){ isFinal(cur) ? tooLoud() : succeed(); }
   });
+  let fakeVoice=0;
+
+  /* loudness vs the room's background level */
+  let floor=-60, db=-90, loudMs=0, quietMs=0, inBurst=false;
+  const hist=[]; let histN=0;                       // last ~4 s of levels; background = their 20th percentile
+  function measure(dt){
+    if(an){ an.getFloatTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++) s+=buf[i]*buf[i];
+      db=Math.max(-100, 20*Math.log10(Math.sqrt(s/buf.length)+1e-9));
+      hist.push(db); if(hist.length>240) hist.shift();
+      if(++histN%8===0 && hist.length>20){ const srt=hist.slice().sort((a,b)=>a-b); floor=srt[Math.floor(srt.length*.2)]; }
+    } else db=-100;
+    if(performance.now()-fakeVoice<350) return 30;
+    return db-floor;                                 // dB above the room's background
+  }
 
   const isFinal = s => s && s.dataset.shout==='final';
   function refreshMsg(){
     if(!visible) return;
-    if(voice==='blocked') msg.textContent='Microphone is blocked. Allow it in the address bar, or press N.';
-    else if(voice==='unsupported') msg.textContent='Voice needs Chrome. Press N instead.';
+    if(mic==='blocked') msg.textContent='Microphone is blocked. Allow it in the address bar, or press N.';
+    else if(mic!=='ok') msg.textContent='Allow the microphone when Chrome asks.';
+    else if(msg.dataset.sys) msg.textContent='';
+    msg.dataset.sys = mic==='ok' ? '' : '1';
   }
   function show(){
     if(!cur || passed.has(cur) || visible) return;
-    visible=true; startVoice();
+    visible=true; armedAt=performance.now(); inBurst=false; loudMs=0; startMic();
     const f=isFinal(cur);
     el.classList.toggle('big', f);
     label.textContent = f ? 'Say “NEXT”' : 'Say “next”';
-    sub.textContent = f ? 'one last time' : 'listening…';
-    msg.textContent='';
-    el.classList.add('on'); refreshMsg();
+    sub.textContent = 'listening';
+    msg.textContent=''; el.classList.add('on'); refreshMsg();
   }
   function hide(){ visible=false; el.classList.remove('on'); }
   function nudge(t){ msg.textContent=t; el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); }
 
-  function heard(){
-    if(!visible || breaking || passing || !cur) return;
-    const now=performance.now(); if(now-lastHit<1200) return; lastHit=now;
-    if(!isFinal(cur)){ succeed(); return; }
-    attempts++; markTries();
-    if(attempts===1) nudge('Hmm? Didn’t catch that. Again.');
-    else if(attempts===2) nudge('Still nothing. Like you mean it.');
-    else shatter();
-  }
-
   window.__shout = {
-    enter(s, ready){ cur=s; clearTimeout(showT); if(s.dataset.shout && !passed.has(s) && ready) showT=setTimeout(show, 1100); },
-    ready(s, done){ if(done && s.dataset.shout && !passed.has(s)){ clearTimeout(showT); showT=setTimeout(show, 600); } },
-    leave(s){ clearTimeout(showT); hide(); },
+    enter(s){ cur=s; },
+    ready(){},
+    leave(){ hide(); },
     blocks(s){
+      cur=s;
       if(!s.dataset.shout || passed.has(s)) return false;
-      if(!visible){ clearTimeout(showT); show(); return true; }
-      nudge(isFinal(s) ? 'The keyboard cannot save you. Say it.' : 'Nope. Say it out loud.');
+      if(!visible){ show(); return true; }
+      nudge(isFinal(s) ? 'Say it. Out loud.' : 'Nope. Say it out loud.');
       return true;
     }
   };
 
+  /* a "word" = sound clearly above background for 120 ms+, ended by 300 ms of quiet */
+  function onWord(){
+    if(!isFinal(cur)){ succeed(); return; }
+    attempts++;
+    if(attempts===1) nudge('Hmm? Didn’t catch that.');
+    else if(attempts===2) nudge('Still nothing…');
+    else tooLoud();
+  }
   function succeed(){
     if(!cur || passing) return; passing=true;
     passed.add(cur); el.classList.add('hit'); msg.textContent='Heard you.';
     D.burst(.5,.85);
-    setTimeout(()=>{ hide(); el.classList.remove('hit'); passing=false; D.go(D.cur()+1); }, 500);
+    setTimeout(()=>{ hide(); el.classList.remove('hit'); passing=false; D.go(D.cur()+1); }, 450);
   }
-  function markTries(){ cur?.querySelectorAll('.tries span').forEach((d,i)=>d.classList.toggle('used', i<attempts)); }
-  window.__shout.enter(D.slides[D.cur()], D.fragsDone());
+  function tooLoud(){
+    if(breaking) return; breaking=true;
+    label.textContent='TOO LOUD'; sub.textContent=''; msg.textContent='';
+    el.classList.add('alarm'); D.shake();
+    setTimeout(()=>{ el.classList.remove('alarm'); breaking=false; shatter(); }, 650);
+  }
 
+  let last=performance.now();
+  function frame(t){
+    const dt=Math.min(.1,(t-last)/1000); last=t;
+    const above=measure(dt);
+    if(visible){
+      bars.forEach((b,i)=>b.style.transform='scaleY('+Math.max(.15,Math.min(1,(above-i*4)/14))+')');
+      if(!breaking && !passing && t-armedAt>500){
+        if(above>12){ loudMs+=dt*1000; quietMs=0; if(!inBurst && loudMs>=120){ inBurst=true; } }
+        else { quietMs+=dt*1000; if(quietMs>80) loudMs=0;
+          if(inBurst && quietMs>=300){ inBurst=false; onWord(); } }
+        // a long shout on the last try shouldn't have to wait for silence
+        if(inBurst && isFinal(cur) && attempts>=2 && loudMs>350){ inBurst=false; attempts++; tooLoud(); }
+        if(inBurst && !isFinal(cur)){ inBurst=false; quietMs=0; onWord(); }   // ordinary gates react on the spot
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  cur = D.slides[D.cur()];
+  window.__vad = ()=>({mic, db:Math.round(db), floor:Math.round(floor), visible, inBurst, loudMs:Math.round(loudMs), quietMs:Math.round(quietMs), sinceArm:Math.round(performance.now()-armedAt), lastT:Math.round(performance.now()-last), attempts, ctx:ctx&&ctx.state, micCtx:window.__mic?.c?.state});
   /* ── glass break ── */
   function shatter(){
     if(breaking) return; breaking=true;
@@ -849,7 +890,6 @@ button{font:inherit;cursor:pointer}
   }
 
   /* sounds, synthesised */
-  function ac(){ ctx = ctx || new (window.AudioContext||window.webkitAudioContext)(); ctx.resume?.(); return ctx; }
   function noise(c, secs, decay){ const b=c.createBuffer(1, c.sampleRate*secs, c.sampleRate), d=b.getChannelData(0);
     for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length, decay); const n=c.createBufferSource(); n.buffer=b; return n; }
   function crackSound(){ try{ const c=ac(), n=noise(c,.09,3), hp=c.createBiquadFilter(), g=c.createGain();
