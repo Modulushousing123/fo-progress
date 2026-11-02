@@ -25,8 +25,8 @@ h1,h2,h3,p{margin:0}
 h1,h2,h3{font-family:var(--f-display);letter-spacing:-.03em;line-height:.98;text-wrap:balance}
 button{font:inherit;cursor:pointer}
 
-#viewport{position:fixed;inset:0;display:grid;place-items:center}
-#stage{width:1600px;height:900px;position:relative;flex:none;transform-origin:center;overflow:hidden;border-radius:6px;background:var(--cream)}
+#viewport{position:fixed;inset:0;overflow:hidden}
+#stage{width:1600px;height:900px;position:absolute;left:0;top:0;transform-origin:0 0;overflow:hidden;background:var(--cream)}
 
 .slide{position:absolute;inset:0;padding:80px 96px;display:flex;flex-direction:column;opacity:0;visibility:hidden;transition:opacity .5s, visibility 0s .5s;overflow:hidden}
 .slide.active{opacity:1;visibility:visible;transition:opacity .5s}
@@ -53,11 +53,12 @@ button{font:inherit;cursor:pointer}
 .grow{flex:1}
 
 /* ── 1 boot ── */
-.boot{font-family:var(--f-mono);font-size:24px;line-height:1.7;color:var(--term-fg);min-height:205px}
+.boot{font-family:var(--f-mono);font-size:21px;line-height:1.6;color:var(--term-fg);min-height:200px}
 .boot .ok{color:#4CC38A}.boot .warn{color:var(--hi)}
 .cursor{display:inline-block;width:14px;height:1.05em;background:var(--term-fg);vertical-align:-4px;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
-.s-title h1{font-size:132px;color:#F2F7F6;margin-top:30px}
+.s-title h1{font-size:100px;color:#F2F7F6;margin-top:24px;text-wrap:wrap;line-height:1}
+.s-title h1 .ln{display:block;white-space:nowrap}
 .s-title .strike{position:relative;color:var(--term-dim);font-weight:500}
 .s-title .strike::after{content:"";position:absolute;left:-2%;right:-2%;top:54%;height:.08em;background:var(--hot);transform:scaleX(0);transform-origin:left;transition:transform .5s cubic-bezier(.6,0,.2,1)}
 .s-title.active .strike::after{transform:scaleX(1);transition-delay:2.6s}
@@ -214,13 +215,13 @@ button{font:inherit;cursor:pointer}
 
 /* ── chrome ── */
 #progress{position:absolute;left:0;bottom:0;height:6px;background:var(--hot);width:0;transition:width .5s cubic-bezier(.3,1,.3,1);z-index:5}
-#counter{position:absolute;right:30px;bottom:22px;font-family:var(--f-mono);font-size:17px;z-index:5;opacity:.55;mix-blend-mode:difference;color:#fff}
+#counter{position:absolute;left:32px;bottom:22px;font-family:var(--f-mono);font-size:17px;z-index:5;opacity:.55;mix-blend-mode:difference;color:#fff}
 #hint{position:fixed;left:50%;bottom:max(14px, env(safe-area-inset-bottom, 0px));transform:translateX(-50%);font-family:var(--f-mono);font-size:13px;color:#7f9a9e;transition:opacity .6s;pointer-events:none;white-space:nowrap}
 #nav{position:fixed;right:max(14px, env(safe-area-inset-right, 0px));bottom:max(10px, env(safe-area-inset-bottom, 0px));display:flex;gap:6px;opacity:.35;transition:opacity .3s}
 #nav:hover{opacity:1}
 #nav button{background:#11262a;color:#cfe;border:1px solid #234;border-radius:8px;width:38px;height:34px}
-#toast{position:absolute;left:50%;top:40px;transform:translate(-50%,-180%);background:var(--ink);color:#fff;padding:18px 28px;border-radius:18px;display:flex;gap:16px;align-items:center;z-index:6;transition:transform .5s cubic-bezier(.3,1.5,.4,1);box-shadow:0 20px 50px rgba(0,0,0,.35);font-size:22px}
-#toast.show{transform:translate(-50%,0)}
+#toast{visibility:hidden;position:absolute;left:50%;top:40px;transform:translate(-50%,-180%);background:var(--ink);color:#fff;padding:18px 28px;border-radius:18px;display:flex;gap:16px;align-items:center;z-index:6;transition:transform .5s cubic-bezier(.3,1.5,.4,1);box-shadow:0 20px 50px rgba(0,0,0,.35);font-size:22px}
+#toast.show{transform:translate(-50%,0);visibility:visible}
 #toast small{display:block;color:var(--hi);font-family:var(--f-mono);font-size:15px;letter-spacing:.1em;text-transform:uppercase}
 #fx{position:absolute;inset:0;pointer-events:none;z-index:7}
 :focus-visible{outline:3px solid var(--hi);outline-offset:3px}
@@ -236,7 +237,7 @@ button{font:inherit;cursor:pointer}
   <!-- 1 · Title -->
   <section class="slide dark s-title" data-title="Boot">
     <div class="boot" id="boot"></div>
-    <h1 class="a" style="--d:14">We were asked to <span class="strike">help out a bit.</span><br>We built an <span class="os">operating system.</span></h1>
+    <h1 class="a" style="--d:14"><span class="ln">We were asked to</span><span class="ln"><span class="strike">help out a bit.</span></span><span class="ln">We built an</span><span class="ln"><span class="os">operating system.</span></span></h1>
     <div class="meta a" style="--d:16"><span>Modulus Housing · Founder's Office</span><span>Patch notes · Nov 2026</span></div>
   </section>
 
@@ -393,7 +394,7 @@ button{font:inherit;cursor:pointer}
   </section>
 
   <div id="toast"><span style="font-size:38px">🏆</span><div><small>Achievement unlocked</small><span id="toastMsg"></span></div></div>
-  <canvas id="fx" width="1600" height="900"></canvas>
+  <canvas id="fx"></canvas>
   <div id="progress"></div>
   <div id="counter"></div>
 </div></div>
@@ -409,8 +410,18 @@ button{font:inherit;cursor:pointer}
   let cur = -1, step = 0;
 
   /* fit the 1600×900 stage to the window */
-  function fit(){ const s=Math.min(innerWidth/1600, innerHeight/900); stage.style.transform='scale('+s+')'; }
-  addEventListener('resize', fit); fit();
+  let SW=1600, SH=900;
+  /* the stage keeps 900 design-px of height (or 1600 of width) and stretches the other side to the screen's aspect ratio, then scales to fill it exactly */
+  function fit(){
+    const vw=document.documentElement.clientWidth, vh=document.documentElement.clientHeight;
+    SH=900; SW=Math.round(900*vw/vh);
+    if(SW<1600){ SW=1600; SH=Math.round(1600*vh/vw); }
+    stage.style.width=SW+"px"; stage.style.height=SH+"px";
+    stage.style.transform="scale("+(vw/SW)+")";
+    const cv=document.getElementById("fx"); if(cv){ cv.width=SW; cv.height=SH; }
+    if(typeof setUnified==="function" && window.__arenaReady) setUnified(window.__unified);
+  }
+  addEventListener("resize", fit); fit();
 
   /* ── navigation ── */
   const frags = s => [...s.querySelectorAll('.f')];
@@ -468,14 +479,14 @@ button{font:inherit;cursor:pointer}
     if(s.classList.contains('s-arena')) setUnified(back);
     if(s.classList.contains('s-stats')) countUp(s);
     if(s.classList.contains('s-log')) runLog();
-    if(s.classList.contains('s-ql')) later(()=>burst(800,300), 1300);
-    if(s.dataset.ach && !back) later(()=>{ say(s.dataset.ach); burst(800,120); }, 1100);
+    if(s.classList.contains('s-ql')) later(()=>burst(.5,.33), 1300);
+    if(s.dataset.ach && !back) later(()=>{ say(s.dataset.ach); burst(.5,.13); }, 1100);
   }
   function onFrag(s, i){
-    if(s.classList.contains('s-arena')){ setUnified(true); burst(800,260); }
-    if(s.classList.contains('s-drake')) burst(1100,600);
-    if(s.classList.contains('s-iso')){ shake(); burst(1300,330); }
-    if(s.classList.contains('s-sos')){ shake(); burst(1400,700); }
+    if(s.classList.contains('s-arena')){ setUnified(true); burst(.5,.3); }
+    if(s.classList.contains('s-drake')) burst(.68,.66);
+    if(s.classList.contains('s-iso')){ shake(); burst(.8,.37); }
+    if(s.classList.contains('s-sos')){ shake(); burst(.86,.78); }
   }
   function onUnfrag(s){ if(s.classList.contains('s-arena')) setUnified(false); }
   function shake(){ if(reduce) return; stage.animate([{transform:stage.style.transform+' translate(0,0)'},{transform:stage.style.transform+' translate(-8px,5px)'},{transform:stage.style.transform+' translate(6px,-4px)'},{transform:stage.style.transform+' translate(0,0)'}],{duration:260}); }
@@ -511,9 +522,10 @@ button{font:inherit;cursor:pointer}
   const arena=document.getElementById('arena'), arenaSlide=arena.closest('.slide');
   const chips=depts.map(([n,c],k)=>{ const el=document.createElement('div'); el.className='chip'; el.style.setProperty('--k',k);
     el.innerHTML='<b>'+n+'</b><i>'+c+'</i>'; el.dataset.c=c; arena.appendChild(el); return el; });
-  const W=1408, H=560;
+  let W=1408, H=560;
   function rnd(i){ const x=Math.sin(i*91.7+3.1)*10000; return x-Math.floor(x); }
   function setUnified(on){
+    window.__unified=on; W=arena.clientWidth||1408; H=arena.clientHeight||560;
     arenaSlide.classList.toggle('on', on);
     document.getElementById('state').textContent = on ? 'After MOD OS ✓' : 'Before MOD OS';
     document.getElementById('ranRuns').textContent = on ? 'runs now' : 'ran';
@@ -530,13 +542,13 @@ button{font:inherit;cursor:pointer}
       } else {
         el.style.width='';
         const col=i%6, row=Math.floor(i/6);
-        const x = col*(W-270)/5 + (rnd(i)-.5)*90, y = 20+row*170 + (rnd(i+30)-.5)*80;
+        const x = col*(W-270)/5 + (rnd(i)-.5)*90, y = 20+row*((H-130)/2) + (rnd(i+30)-.5)*80;
         el.style.transform='translate('+Math.max(0,Math.min(W-260,x))+'px,'+Math.max(0,Math.min(H-110,y))+'px) rotate('+((rnd(i+60)-.5)*24)+'deg)';
         el.querySelector('i').textContent=el.dataset.c;
       }
     });
   }
-  setUnified(false);
+  setUnified(false); window.__arenaReady=true;
 
   /* 5 · counters */
   function countUp(s){
@@ -587,14 +599,14 @@ button{font:inherit;cursor:pointer}
   /* confetti */
   const cv=document.getElementById('fx'), cx=cv.getContext('2d'); let parts=[], raf=0;
   const cols=['#FFD43B','#03536a','#E2553B','#1F8A5B','#5DB8CC'];
-  function burst(x,y){
-    if(reduce) return;
+  function burst(fx,fy){
+    if(reduce) return; const x=fx*SW, y=fy*SH;
     for(let i=0;i<140;i++){ const a=Math.random()*Math.PI*2, sp=5+Math.random()*13;
       parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-8,r:Math.random()*6,w:8+Math.random()*9,h:12+Math.random()*12,c:cols[i%cols.length],life:120}); }
     if(!raf) loop();
   }
   function loop(){
-    cx.clearRect(0,0,1600,900);
+    cx.clearRect(0,0,SW,SH);
     parts=parts.filter(p=>p.life-->0);
     parts.forEach(p=>{ p.vy+=.38; p.vx*=.985; p.x+=p.vx; p.y+=p.vy; p.r+=.16;
       cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.globalAlpha=Math.min(1,p.life/40); cx.fillStyle=p.c; cx.fillRect(-p.w/2,-p.h/2,p.w,p.h); cx.restore(); });
