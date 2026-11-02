@@ -96,7 +96,7 @@ button{font:inherit;cursor:pointer}
 .roof svg{width:100%;height:100%;display:block}
 .s-arena.on .roof{opacity:1;transform:none}
 .chip{position:absolute;left:0;top:0;width:250px;padding:14px 18px;border-radius:14px;border:2px solid var(--ink);background:var(--paper);display:flex;flex-direction:column;gap:4px;transition:transform 1s cubic-bezier(.3,1.25,.4,1), background .4s, border-color .4s;transition-delay:calc(var(--k) * 25ms)}
-.chip b{font-size:23px;font-weight:600;line-height:1.1}
+.chip b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:23px;font-weight:600;line-height:1.1}
 .chip i{font-style:normal;font-family:var(--f-mono);font-size:16px;color:var(--hot);line-height:1.25}
 .s-arena.on .chip{background:var(--teal-soft);border-color:var(--teal)}
 .s-arena.on .chip i{color:var(--teal)}
@@ -268,6 +268,7 @@ button{font:inherit;cursor:pointer}
     <div class="arena a" style="--d:2" id="arena">
       <div class="roof"><svg viewBox="0 0 1000 110" preserveAspectRatio="none"><path d="M6 104 L500 6 L994 104 Z" fill="#03536a"/><text x="500" y="86" text-anchor="middle" fill="#FFD43B" font-family="Bricolage Grotesque, Arial Black, sans-serif" font-weight="800" font-size="40">MOD OS</text></svg></div>
     </div>
+    <span class="f" aria-hidden="true" style="position:absolute;width:0;height:0"></span>
     <p class="verdict" id="verdict">Seventeen departments. Seventeen ways of doing things. <span class="mono" style="font-size:20px;opacity:.6">(press → )</span></p>
   </section>
 
@@ -537,7 +538,7 @@ button{font:inherit;cursor:pointer}
         const cols=6, gap=16, w=(W-60-gap*(cols-1))/cols, c=i%cols, r=Math.floor(i/cols);
         const rowCount = r===2 ? 5 : cols, offset = r===2 ? (w+gap)/2 : 0;
         el.style.width=w+'px';
-        el.style.transform='translate('+(30+offset+c*(w+gap))+'px,'+(150+r*120)+'px) rotate(0deg)';
+        el.style.transform='translate('+(30+offset+c*(w+gap))+'px,'+(150+r*Math.max(110,(H-200)/3))+'px) rotate(0deg)';
         el.querySelector('i').textContent='✓ in MOD OS';
       } else {
         el.style.width='';
