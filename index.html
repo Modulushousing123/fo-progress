@@ -696,7 +696,7 @@ button{font:inherit;cursor:pointer}
   const label = document.getElementById('shoutLabel'), sub = document.getElementById('shoutSub'), msg = document.getElementById('shoutMsg');
   const shards = document.getElementById('shards');
   const passed = new WeakSet();
-  let visible=false, cur=null, fill=0, level=0, hold=false, showT=0, breaking=false;
+  let visible=false, cur=null, fill=0, level=0, hold=false, showT=0, breaking=false, passing=false;
   let ctx=null, an=null, buf=null, micState='idle';           // idle | asking | ok | blocked
   let attempts=0, inAttempt=false, quietT=0, peak=0;
 
@@ -764,9 +764,10 @@ button{font:inherit;cursor:pointer}
   function succeed(){
     if(!cur) return;
     if(isFinal(cur)){ shatter(); return; }
-    passed.add(cur); fill=1; fillEl.style.width='100%'; say('LOUD. Respect.');
+    if(passing) return; passing=true;
+    passed.add(cur); fill=1; fillEl.style.width="100%"; say("LOUD. Respect.");
     D.burst(.5,.8);
-    setTimeout(()=>{ hide(); D.go(D.cur()+1); }, 450);
+    setTimeout(()=>{ hide(); passing=false; D.go(D.cur()+1); }, 450);
   }
 
   /* per-frame */
@@ -775,7 +776,7 @@ button{font:inherit;cursor:pointer}
     const dt=Math.min(.1,(t-last)/1000); last=t;
     const lvl=readLevel();
     liveEl.style.width=(lvl*100)+'%';
-    if(visible && !breaking && cur){
+    if(visible && !breaking && !passing && cur){
       if(!isFinal(cur)){
         if(lvl>.5) fill += (lvl-.4)*dt*1.6; else fill -= dt*.25;
         fill=Math.max(0,Math.min(1,fill));
@@ -784,7 +785,6 @@ button{font:inherit;cursor:pointer}
       fillEl.style.width=(fill*100)+'%';
     }
     requestAnimationFrame(frame);
-  window.__shout.enter(D.slides[D.cur()], D.fragsDone());
   }
   function finalFrame(lvl, dt){
     if(lvl>.5){
@@ -809,6 +809,7 @@ button{font:inherit;cursor:pointer}
   }
   function markTries(){ cur?.querySelectorAll('.tries span').forEach((d,i)=>d.classList.toggle('used', i<attempts)); }
   requestAnimationFrame(frame);
+  window.__shout.enter(D.slides[D.cur()], D.fragsDone());
 
   /* ── glass break ── */
   function shatter(){
