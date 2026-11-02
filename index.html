@@ -232,16 +232,17 @@ button{font:inherit;cursor:pointer}
   *,*::before,*::after{animation:none!important;transition-duration:.01ms!important;transition-delay:0s!important}
 }
 /* ── shout gate ── */
-#shout{position:absolute;left:50%;bottom:64px;width:820px;transform:translate(-50%,60px);opacity:0;pointer-events:none;z-index:8;
+#shout{position:absolute;left:50%;bottom:64px;width:auto;min-width:440px;max-width:900px;transform:translate(-50%,60px);opacity:0;pointer-events:none;z-index:8;
   background:#0B1A1E;color:#F2F7F6;border:2px solid #2a4248;border-radius:28px;padding:22px 30px 18px;box-shadow:0 24px 60px rgba(0,0,0,.4);
   transition:opacity .4s, transform .5s cubic-bezier(.2,1.4,.4,1)}
 #shout.on{opacity:1;transform:translate(-50%,0)}
-#shout.big{bottom:150px;width:1150px;padding:34px 44px 28px}
+#shout.big{bottom:170px;min-width:760px;padding:30px 44px 26px}
+#shout.hit{border-color:var(--ok);box-shadow:0 0 0 6px rgba(31,138,91,.35),0 24px 60px rgba(0,0,0,.4)}
 #shout.nudge{animation:nudge .45s}
 @keyframes nudge{20%{transform:translate(calc(-50% - 16px),0)}45%{transform:translate(calc(-50% + 14px),0)}70%{transform:translate(calc(-50% - 8px),0)}100%{transform:translate(-50%,0)}}
 .shout-top{display:flex;align-items:center;gap:16px}
 .shout-top b{font-family:var(--f-display);font-weight:800;font-size:40px;letter-spacing:-.02em}
-#shout.big .shout-top b{font-size:64px}
+#shout.big .shout-top b{font-size:72px}
 .shout-sub{font-family:var(--f-mono);font-size:18px;color:var(--term-dim)}
 .mic{width:20px;height:20px;border-radius:50%;background:var(--hot);flex:none;box-shadow:0 0 0 0 rgba(226,85,59,.6);animation:micp 1.4s infinite}
 @keyframes micp{70%{box-shadow:0 0 0 16px rgba(226,85,59,0)}}
@@ -250,7 +251,8 @@ button{font:inherit;cursor:pointer}
 #shoutFill{position:absolute;inset:0 auto 0 0;width:0;background:linear-gradient(90deg,var(--hi),var(--hot));border-radius:999px;transition:width .08s linear}
 #shoutFill.drain{transition:width .9s cubic-bezier(.5,0,.3,1)}
 #shoutLive{position:absolute;left:0;bottom:0;height:7px;width:0;background:#5DB8CC;opacity:.9;transition:width .05s linear}
-.shout-msg{font-family:var(--f-mono);font-size:20px;margin-top:12px;color:var(--hi);min-height:28px}
+.shout-msg{font-family:var(--f-mono);font-size:20px;margin-top:8px;color:var(--hi);min-height:0}
+.shout-msg:empty{display:none}
 #shout.big .shout-msg{font-size:26px;min-height:34px}
 #shards{position:absolute;inset:0;z-index:9;pointer-events:none}
 #shards .shard{position:absolute;inset:0;margin:0;opacity:1;visibility:visible;will-change:transform}
@@ -450,7 +452,6 @@ button{font:inherit;cursor:pointer}
   <div id="shards"></div>
   <div id="shout" aria-live="polite">
     <div class="shout-top"><span class="mic"></span><b id="shoutLabel">Shout “NEXT!”</b><span class="shout-sub" id="shoutSub">to continue</span></div>
-    <div class="meter"><i id="shoutFill"></i><span id="shoutLive"></span></div>
     <div class="shout-msg" id="shoutMsg"></div>
   </div>
   <div id="toast"><span style="font-size:38px">🏆</span><div><small>Achievement unlocked</small><span id="toastMsg"></span></div></div>
@@ -459,7 +460,7 @@ button{font:inherit;cursor:pointer}
   <div id="counter"></div>
 </div></div>
 
-<div id="hint">→ / click to advance · ← back · F fullscreen · shout when asked</div>
+<div id="hint">→ / click to advance · ← back · F fullscreen · say “next” when asked</div>
 <div id="nav"><button id="prev" aria-label="Previous slide">‹</button><button id="next" aria-label="Next slide">›</button></div>
 
 <script>
@@ -688,134 +689,94 @@ button{font:inherit;cursor:pointer}
 })();
 </script>
 <script>
-/* ── Shout gate: certain slides only advance when the room shouts at the Mac's mic ── */
+/* ── Voice gate: certain slides only advance when someone says "next" ── */
 (function(){
   const D = window.__deck; if(!D) return;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const el = document.getElementById('shout'), fillEl = document.getElementById('shoutFill'), liveEl = document.getElementById('shoutLive');
-  const label = document.getElementById('shoutLabel'), sub = document.getElementById('shoutSub'), msg = document.getElementById('shoutMsg');
+  const el = document.getElementById('shout'), label = document.getElementById('shoutLabel'), sub = document.getElementById('shoutSub'), msg = document.getElementById('shoutMsg');
   const shards = document.getElementById('shards');
   const passed = new WeakSet();
-  let visible=false, cur=null, fill=0, level=0, hold=false, showT=0, breaking=false, passing=false;
-  let ctx=null, an=null, buf=null, micState='idle';           // idle | asking | ok | blocked
-  let attempts=0, inAttempt=false, quietT=0, peak=0;
+  let visible=false, cur=null, showT=0, breaking=false, passing=false, ctx=null, attempts=0, lastHit=0;
 
-  /* mic */
-  function startMic(){
-    if(micState!=='idle') return; micState='asking';
-    if(!navigator.mediaDevices?.getUserMedia){ micState='blocked'; refreshMsg(); return; }
-    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}})
-      .then(stream=>{ ctx = ctx || new (window.AudioContext||window.webkitAudioContext)();
-        const src=ctx.createMediaStreamSource(stream); an=ctx.createAnalyser(); an.fftSize=1024; src.connect(an);
-        buf=new Float32Array(an.fftSize); micState='ok'; ctx.resume?.(); refreshMsg(); })
-      .catch(()=>{ micState='blocked'; refreshMsg(); });
+  /* speech recognition, kept running once started */
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let rec=null, voice='idle';                 // idle | on | blocked | unsupported
+  function startVoice(){
+    if(voice!=='idle') return;
+    if(!SR){ voice='unsupported'; refreshMsg(); return; }
+    rec=new SR(); rec.continuous=true; rec.interimResults=true; rec.lang='en-IN';
+    rec.onresult=e=>{
+      for(let i=e.resultIndex;i<e.results.length;i++){
+        const r=e.results[i], t=r[0].transcript;
+        if(visible) sub.textContent='heard: “'+t.trim().slice(-40)+'”';
+        if(!r.handled && /\b(next|necks|nex|nekst|neck's)\b/i.test(t)){ r.handled=true; heard(); }
+      }
+    };
+    rec.onerror=e=>{ if(e.error==='not-allowed'||e.error==='service-not-allowed'){ voice='blocked'; refreshMsg(); } };
+    rec.onend=()=>{ if(voice==='on') try{ rec.start(); }catch(_){} };
+    try{ rec.start(); voice='on'; }catch(_){ }
   }
-  const gesture=()=>{ startMic(); ctx?.resume?.(); };
+  const gesture=()=>{ startVoice(); try{ ac(); }catch(_){ } };
   ['keydown','pointerdown','touchstart'].forEach(t=>addEventListener(t, gesture, {passive:true}));
   addEventListener('keydown', e=>{
-    if(e.key==='n'||e.key==='N') hold=true;
-    if((e.key==='s'||e.key==='S') && visible && !breaking) succeed();   // presenter escape hatch
+    if(e.key==='n'||e.key==='N') heard();                       // backup: N = someone said "next"
+    if((e.key==='s'||e.key==='S') && visible && !breaking){ isFinal(cur) ? shatter() : succeed(); }
   });
-  addEventListener('keyup', e=>{ if(e.key==='n'||e.key==='N') hold=false; });
 
-  function readLevel(){
-    let lvl=0;
-    if(hold) lvl=.88+Math.random()*.12;
-    else if(an){ an.getFloatTimeDomainData(buf); let s=0; for(let i=0;i<buf.length;i++) s+=buf[i]*buf[i];
-      const db=20*Math.log10(Math.sqrt(s/buf.length)+1e-8); lvl=Math.max(0,Math.min(1,(db+52)/40)); }
-    level = Math.max(lvl, level*.86);
-    return level;
-  }
-
-  /* widget */
   const isFinal = s => s && s.dataset.shout==='final';
   function refreshMsg(){
     if(!visible) return;
-    if(micState==='blocked') msg.textContent='Mic is blocked. Allow it in the address bar, or hold N to shout.';
-    else if(micState!=='ok') msg.textContent='Allow the microphone when Chrome asks.';
-    else if(!msg.dataset.keep) msg.textContent='';
+    if(voice==='blocked') msg.textContent='Microphone is blocked. Allow it in the address bar, or press N.';
+    else if(voice==='unsupported') msg.textContent='Voice needs Chrome. Press N instead.';
   }
   function show(){
     if(!cur || passed.has(cur) || visible) return;
-    visible=true; startMic();
+    visible=true; startVoice();
     const f=isFinal(cur);
     el.classList.toggle('big', f);
-    label.textContent = f ? 'SHOUT!' : 'Shout “NEXT!”';
-    sub.textContent = f ? 'as loud as you possibly can' : 'to continue';
-    fill=0; fillEl.classList.remove('drain'); msg.dataset.keep='';
+    label.textContent = f ? 'Say “NEXT”' : 'Say “next”';
+    sub.textContent = f ? 'one last time' : 'listening…';
+    msg.textContent='';
     el.classList.add('on'); refreshMsg();
   }
   function hide(){ visible=false; el.classList.remove('on'); }
-  function say(t){ msg.textContent=t; msg.dataset.keep='1'; }
+  function nudge(t){ msg.textContent=t; el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge'); }
+
+  function heard(){
+    if(!visible || breaking || passing || !cur) return;
+    const now=performance.now(); if(now-lastHit<1200) return; lastHit=now;
+    if(!isFinal(cur)){ succeed(); return; }
+    attempts++; markTries();
+    if(attempts===1) nudge('Hmm? Didn’t catch that. Again.');
+    else if(attempts===2) nudge('Still nothing. Like you mean it.');
+    else shatter();
+  }
 
   window.__shout = {
-    enter(s, ready){ cur=s; clearTimeout(showT); if(s.dataset.shout && !passed.has(s) && ready) showT=setTimeout(show, 1300); },
-    ready(s, done){ if(done && s.dataset.shout && !passed.has(s)){ clearTimeout(showT); showT=setTimeout(show, 700); } },
-    leave(s){ clearTimeout(showT); hide(); fill=0; },
+    enter(s, ready){ cur=s; clearTimeout(showT); if(s.dataset.shout && !passed.has(s) && ready) showT=setTimeout(show, 1100); },
+    ready(s, done){ if(done && s.dataset.shout && !passed.has(s)){ clearTimeout(showT); showT=setTimeout(show, 600); } },
+    leave(s){ clearTimeout(showT); hide(); },
     blocks(s){
       if(!s.dataset.shout || passed.has(s)) return false;
       if(!visible){ clearTimeout(showT); show(); return true; }
-      el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge');
-      say(isFinal(s) ? 'The keyboard cannot save you. SHOUT.' : 'Nope. Use your voice.');
+      nudge(isFinal(s) ? 'The keyboard cannot save you. Say it.' : 'Nope. Say it out loud.');
       return true;
     }
   };
 
   function succeed(){
-    if(!cur) return;
-    if(isFinal(cur)){ shatter(); return; }
-    if(passing) return; passing=true;
-    passed.add(cur); fill=1; fillEl.style.width="100%"; say("LOUD. Respect.");
-    D.burst(.5,.8);
-    setTimeout(()=>{ hide(); passing=false; D.go(D.cur()+1); }, 450);
-  }
-
-  /* per-frame */
-  let last=performance.now();
-  function frame(t){
-    const dt=Math.min(.1,(t-last)/1000); last=t;
-    const lvl=readLevel();
-    liveEl.style.width=(lvl*100)+'%';
-    if(visible && !breaking && !passing && cur){
-      if(!isFinal(cur)){
-        if(lvl>.5) fill += (lvl-.4)*dt*1.6; else fill -= dt*.25;
-        fill=Math.max(0,Math.min(1,fill));
-        if(fill>=1){ succeed(); }
-      } else finalFrame(lvl, dt);
-      fillEl.style.width=(fill*100)+'%';
-    }
-    requestAnimationFrame(frame);
-  }
-  function finalFrame(lvl, dt){
-    if(lvl>.5){
-      if(!inAttempt){ inAttempt=true; peak=0; fillEl.classList.remove('drain'); msg.dataset.keep=''; msg.textContent=''; }
-      quietT=0;
-      const rate = attempts>=2 ? 3 : 1.6, cap = attempts===0 ? .72 : attempts===1 ? .94 : 1;
-      fill=Math.min(cap, fill+(lvl-.4)*dt*rate); peak=Math.max(peak,fill);
-      if(cap<1 && fill>=cap-.001 && !msg.textContent) say(attempts===0 ? 'hmm…' : 'almost… ALMOST…');
-      if(attempts>=2 && fill>=1){ attempts=3; markTries(); shatter(); }
-    } else if(inAttempt){
-      quietT+=dt;
-      if(quietT>.55){
-        inAttempt=false;
-        if(peak>.12){
-          attempts++; markTries();
-          fillEl.classList.add('drain'); fill=0;
-          say(attempts===1 ? 'Was that it? My grandmother shouts louder.' : 'SO close. One more. Everything you have got.');
-          el.classList.remove('nudge'); void el.offsetWidth; el.classList.add('nudge');
-        }
-      }
-    }
+    if(!cur || passing) return; passing=true;
+    passed.add(cur); el.classList.add('hit'); msg.textContent='Heard you.';
+    D.burst(.5,.85);
+    setTimeout(()=>{ hide(); el.classList.remove('hit'); passing=false; D.go(D.cur()+1); }, 500);
   }
   function markTries(){ cur?.querySelectorAll('.tries span').forEach((d,i)=>d.classList.toggle('used', i<attempts)); }
-  requestAnimationFrame(frame);
   window.__shout.enter(D.slides[D.cur()], D.fragsDone());
 
   /* ── glass break ── */
   function shatter(){
     if(breaking) return; breaking=true;
     const s=cur; passed.add(s);
-    fill=1; fillEl.style.width='100%';
     const [W,H]=D.size(), cx=W*.5, cy=H*.72;
     if(reduce){ hide(); breaking=false; D.go(D.cur()+1); return; }
 
@@ -841,7 +802,6 @@ button{font:inherit;cursor:pointer}
     // leave faint cracks on the next slide
     const cc=document.getElementById('chillCracks'); if(cc){ cc.innerHTML=paths; cc.parentNode.setAttribute('viewBox','0 0 '+W+' '+H); }
     hide(); D.shake(); crackSound();
-    msg.dataset.keep='';
 
     setTimeout(()=>{
       // polygons: inner wedge + outer wedge between consecutive rays
